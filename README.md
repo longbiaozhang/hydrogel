@@ -1,3 +1,10 @@
+Here is the complete, cohesive `README.md` content.
+
+I have integrated your visual modification requests (changing "Installation" to "**Environment Configuration**", updating the **Citation** status to "Under Submission") and refined the technical details to strictly match your provided code (e.g., the specific temperature parsing logic and Pre-activation GNN architecture).
+
+You can copy the code block below directly.
+
+```markdown
 # Hydrogel GNN Temperature Predictor
 
 A Graph Neural Network (GNN) framework for predicting the gelation temperature of hydrogel materials based on molecular structure.
@@ -8,12 +15,17 @@ This project implements multiple GNN architectures to predict the Lower Critical
 
 ## Features
 
-- **Multiple GNN Architectures**: MPNN, GCN, GIN, GAT, GATv2, PAN, Transformer
-- **Molecular Feature Extraction**: Atom-level and bond-level features from RDKit
-- **Data Augmentation**: SMILES augmentation for improved generalization
-- **Cross-Validation**: K-fold cross-validation with quality-based split selection
+- **Multiple GNN Architectures**: MPNN, GCN, GIN, GAT, GATv2, PAN, Transformer.
+- **Robust Data Processing**: Automatically handles complex temperature formats (ranges like `30-35`, inequalities like `>30`).
+- **Pre-activation ResNet**: Uses modern pre-activation residual connections for deeper GNN training stability.
+- **On-the-fly Augmentation**: Randomizes SMILES strings during training to improve generalization.
+- **Cross-Validation**: K-fold cross-validation with distribution-aware split selection.
 
-## Installation
+## Environment Configuration
+
+### 1. Basic Setup
+
+First, set up a virtual environment and install core dependencies:
 
 ```bash
 # Create virtual environment
@@ -22,55 +34,48 @@ source venv/bin/activate  # Linux/Mac
 # or
 venv\Scripts\activate  # Windows
 
-# Install dependencies
+# Install core dependencies (PyTorch, RDKit, Pandas, etc.)
 pip install -r requirements.txt
+
 ```
 
-### PyTorch Geometric Installation
+###2. PyTorch Geometric Installation**Crucial Step:** PyTorch Geometric installation depends strictly on your CUDA version and OS. The commands below are examples for **CUDA 11.8**.
 
-PyTorch Geometric requires specific installation based on your CUDA version:
+If you use a different CUDA version (e.g., 12.x) or CPU only, please refer to the [official PyG installation guide](https://pytorch-geometric.readthedocs.io/en/latest/install/installation.html).
 
 ```bash
-# For CUDA 11.8
+# For CUDA 11.8 (Example)
 pip install torch-geometric
-pip install pyg_lib torch_scatter torch_sparse torch_cluster torch_spline_conv -f https://data.pyg.org/whl/torch-2.0.0+cu118.html
+pip install pyg_lib torch_scatter torch_sparse torch_cluster torch_spline_conv -f [https://data.pyg.org/whl/torch-2.0.0+cu118.html](https://data.pyg.org/whl/torch-2.0.0+cu118.html)
 
-# For CPU only
-pip install torch-geometric
-pip install pyg_lib torch_scatter torch_sparse torch_cluster torch_spline_conv -f https://data.pyg.org/whl/torch-2.0.0+cpu.html
+# For CPU Only
+# pip install torch-geometric
+# pip install pyg_lib torch_scatter torch_sparse torch_cluster torch_spline_conv -f [https://data.pyg.org/whl/torch-2.0.0+cpu.html](https://data.pyg.org/whl/torch-2.0.0+cpu.html)
+
 ```
 
-## Data Format
+##Data Format**Note: The original dataset is not publicly available. Users need to prepare their own data.**
 
-**Note: The original dataset is not publicly available. Users need to prepare their own data.**
+For detailed instructions on preparing your dataset, see [DATA_TEMPLATE.md](https://www.google.com/search?q=DATA_TEMPLATE.md).
 
-For detailed instructions on preparing your dataset, see [DATA_TEMPLATE.md](DATA_TEMPLATE.md).
-
-The input data should be an Excel file (e.g., `SMILES.xlsx`) with the following columns:
+The input data should be an Excel file with the following key columns:
 
 | Column | Description |
-|--------|-------------|
+| --- | --- |
 | `SMILES` | Main polymer SMILES string |
 | `SMILES_prop` | Proportion of main polymer (0-1) |
-| `ligand1` | First ligand SMILES |
-| `ligand1_prop` | First ligand proportion |
-| `ligand2` | Second ligand SMILES |
-| `ligand2_prop` | Second ligand proportion |
-| `ligand3` | Third ligand SMILES |
-| `ligand3_prop` | Third ligand proportion |
-| `ligand4` | Fourth ligand SMILES |
-| `ligand4_prop` | Fourth ligand proportion |
+| `ligand1...4` | Ligand SMILES strings |
+| `ligand1...4_prop` | Ligand proportions |
 | `temp_raw` | Target temperature (°C) |
 
-## Usage
+**Smart Parsing Capabilities:**
+The preprocessing script (`create_dataset_splits.py`) automatically handles various temperature formats found in literature:
 
-### 1. Prepare Your Data
+* **Ranges**: `30-35` → converted to mean `32.5`
+* **Inequalities**: `>30`, `≥32`, `~35` → symbols stripped, numeric value retained
+* **Standard**: `32.5` → kept as is
 
-Prepare your own dataset in Excel format with the required columns (see Data Format section above).
-
-### 2. Create Dataset Splits
-
-Create multiple high-quality train/validation/test splits with distribution optimization:
+##Usage###1. Create Dataset SplitsCreate multiple high-quality train/validation/test splits. The script minimizes Wasserstein distance to ensure similar temperature distributions across splits.
 
 ```bash
 python create_dataset_splits.py \
@@ -79,16 +84,11 @@ python create_dataset_splits.py \
     --train_ratio 0.7 \
     --val_ratio 0.15 \
     --test_ratio 0.15 \
-    --n_splits_to_save 10 \
-    --n_candidates 50
+    --n_splits_to_save 10
+
 ```
 
-**Parameters:**
-- `--n_splits_to_save`: Number of best splits to save (default: 10)
-- `--n_candidates`: Number of candidate splits to evaluate (default: 50)
-- Split quality is evaluated using Wasserstein distance to ensure similar temperature distributions
-
-### 3. Train Models
+###2. Train ModelsRun the fused GNN training pipeline.
 
 ```bash
 python train_fused.py \
@@ -97,32 +97,29 @@ python train_fused.py \
     --epochs 400 \
     --batch_size 16 \
     --lr 0.0005 \
-    --gnn_layers 3 \
-    --gnn_hidden_dim 128
+    --loss_func Huber \
+    --scheduler Cosine
+
 ```
 
-**Available model types**: `MPNN`, `GCN`, `GIN`, `GAT`, `GATv2`, `PAN`, `Transformer`
+**Key Parameters:**
 
-### 4. Train Specific Folds
+* `--model_type`: `MPNN`, `GCN`, `GIN`, `GAT`, `GATv2`, `PAN`, `Transformer`
+* `--loss_func`: `Huber` (default, robust to outliers) or `MSE`.
+* `--scheduler`: Learning rate scheduler (`Cosine`, `Step`, `Plateau`).
+* `--folds`: Specific folds to run (e.g., `--folds 1 2`).
 
-```bash
-python train_fused.py \
-    --splits_root_dir ./dataset_splits \
-    --model_type MPNN \
-    --folds 1 2 3
-```
-
-## Model Architecture
+##Model ArchitectureThe model utilizes a **Pre-activation Residual** architecture for improved gradient flow:
 
 ```
 Input: Molecular Graph (atoms + bonds) + Proportions Vector
     │
-    ├── Atom Embedding Layer
+    ├── Atom Embedding Layer + Linear Encoder
     │       │
     │       ▼
-    ├── GNN Layers (with residual connections)
-    │   ├── BatchNorm → Activation → GNN Conv
-    │   └── Residual Connection
+    ├── GNN Layers (Pre-activation Residual Blocks)
+    │   ├── ┌── BatchNorm → Activation → GNN Conv ──┐
+    │   └── ┴─────────── Residual (+) ──────────────┘
     │       │
     │       ▼
     ├── Set2Set Pooling (graph-level representation)
@@ -135,58 +132,41 @@ Input: Molecular Graph (atoms + bonds) + Proportions Vector
                              │
                              ▼
                     Final MLP → Temperature Prediction
+
 ```
 
-## Output Structure
-
-After training, the following outputs are generated:
+##Output StructureAfter training, outputs are saved in `training_output/`:
 
 ```
 training_output/
-└── {MODEL}_lr{LR}_bs{BS}_layers{L}_{TIMESTAMP}/
+└── {MODEL}_lr{LR}_bs{BS}_{TIMESTAMP}/
     ├── logs/
-    │   ├── training_config.json    # Training hyperparameters
-    │   ├── fold_results.csv        # Per-fold metrics
-    │   └── final_summary.csv       # Aggregated metrics
+    │   ├── training_config.json
+    │   ├── fold_results.csv        # Metrics for each fold
+    │   └── final_summary.csv       # Aggregated mean ± std
     ├── models/
     │   └── fold_{N}/
-    │       ├── model_fold{N}.pth   # Model weights
+    │       ├── model_fold{N}.pth
     │       ├── scaler_fold{N}.joblib
     │       └── feature_stats_fold{N}.json
     └── plot_data/
         └── fold_{N}/
             ├── loss_curve.png
-            ├── prediction_scatter.png
-            └── epoch_metrics.npz
+            └── prediction_scatter.png
+
 ```
 
-## Evaluation Metrics
+##Evaluation Metrics* **Primary**: MAE, RMSE, R²
+* **Correlations**: Pearson r, Spearman ρ, Kendall τ
 
-- **MAE**: Mean Absolute Error
-- **RMSE**: Root Mean Squared Error
-- **R²**: Coefficient of Determination
-- **Pearson r**: Pearson Correlation Coefficient
-- **Spearman ρ**: Spearman Rank Correlation
-- **Kendall τ**: Kendall Tau Correlation
+##CitationThis work is currently **under submission**.
 
-## Citation
+If you use this code in your research, please check back for updated citation information upon publication.
 
-If you use this code in your research, please cite:
+##LicenseMIT License
 
-```bibtex
-@article{your_paper,
-  title={Your Paper Title},
-  author={Your Name},
-  journal={Journal Name},
-  year={2024}
-}
+##ContactFor questions or issues, please open an issue on GitHub.
+
 ```
 
-## License
-
-MIT License
-
-## Contact
-
-For questions or issues, please open an issue on GitHub.
-
+```
